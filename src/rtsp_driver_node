@@ -21,8 +21,14 @@ class RTSPCameraPublisher:
         self._image_raw_topic = rospy.get_param("~image_raw_topic")
         self._camera_info_topic = rospy.get_param("~camera_info_topic")
         self._active = rospy.get_param("~start_activated", False)
+        self._x1 = rospy.get_param("~x1", None)
+        self._x2 = rospy.get_param("~x2", None)
+        self._y1 = rospy.get_param("~y1", None)
+        self._y2 = rospy.get_param("~y2", None)
+        self._cropping = (
+            False if self._x1 is None and self._x2 and None and self._y1 and None and self._y2 is None else True
+        )
         self._camera_info_manager = CameraInfoManager(cname=self._camera_name, namespace=self._camera_name)
-
         self._camera_info_manager.loadCameraInfo()
         if not self._camera_info_manager.isCalibrated():
             rospy.logwarn("No calibration found for the current camera")
@@ -86,6 +92,8 @@ class RTSPCameraPublisher:
             if rospy.is_shutdown() or key == 27 or key == 1048603 or not self._active:
                 break
             # convert CV image to ROS message
+            if self._cropping:
+                cv_image = cv_image[self._y1:self._y2, self._x1:self._x2]
             image_msg = self._ros_cv_bridge.cv2_to_imgmsg(cv_image, encoding="bgr8")
             image_msg.header.frame_id = self._camera_frame
             image_msg.header.stamp = rospy.Time.now()
